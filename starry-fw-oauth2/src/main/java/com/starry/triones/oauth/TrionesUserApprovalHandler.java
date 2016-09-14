@@ -26,8 +26,8 @@ import org.springframework.security.oauth2.provider.ClientRegistrationException;
 import org.springframework.security.oauth2.provider.approval.ApprovalStoreUserApprovalHandler;
 
 /**
- * @author Dave Syer
- * 
+ * @author superch
+ *
  */
 public class TrionesUserApprovalHandler extends ApprovalStoreUserApprovalHandler {
 
@@ -37,9 +37,10 @@ public class TrionesUserApprovalHandler extends ApprovalStoreUserApprovalHandler
 
 	/**
 	 * Service to load client details (optional) for auto approval checks.
-	 * 
+	 *
 	 * @param clientDetailsService a client details service
 	 */
+	@Override
 	public void setClientDetailsService(ClientDetailsService clientDetailsService) {
 		this.clientDetailsService = clientDetailsService;
 		super.setClientDetailsService(clientDetailsService);
@@ -54,10 +55,10 @@ public class TrionesUserApprovalHandler extends ApprovalStoreUserApprovalHandler
 
 	/**
 	 * Allows automatic approval for a white list of clients in the implicit grant case.
-	 * 
+	 *
 	 * @param authorizationRequest The authorization request.
 	 * @param userAuthentication the current user authentication
-	 * 
+	 *
 	 * @return An updated request if it has already been approved by the current user.
 	 */
 	@Override
