@@ -34,8 +34,10 @@ public class AdminController {
 
 	@Autowired
 	private ConsumerTokenServices tokenServices;
+
 	@Autowired
 	private TokenStore tokenStore;
+
 	@Autowired
 	private TrionesUserApprovalHandler userApprovalHandler;
 

@@ -1,5 +1,7 @@
 package com.starry.triones.config;
 
+import javax.sql.DataSource;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +26,7 @@ import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.approval.ApprovalStore;
 import org.springframework.security.oauth2.provider.approval.TokenApprovalStore;
 import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
+import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.security.oauth2.provider.token.store.InMemoryTokenStore;
@@ -79,18 +82,38 @@ public class OAuth2ServerConfig {
 		private UserApprovalHandler userApprovalHandler;
 
 		@Autowired
+		private DataSource dataSource;
+
+		@Autowired
 		@Qualifier("authenticationManagerBean")
 		private AuthenticationManager authenticationManager;
 
 		@Value("${test.redirect:http://localhost:8080/client/}")
 		private String testRedirectUri;
 
+
+		@Bean
+		public JdbcClientDetailsService jdbcClientDetailsService() {
+			return new JdbcClientDetailsService(dataSource);
+		}
+
 		@Override
 		public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
 
-			// TODO 自定义ClientDetailsService用MySQL存储客户端数据，用Redies缓存数据
+
+			// TODO 用JdbcClientDetailsService替换InMemoryClientDetailsService
+
+			clients.withClientDetails(jdbcClientDetailsService());
+
 			// @formatter:off
-			clients.inMemory().withClient("tonr")
+			/*clients.inMemory()
+					.withClient("admin-trusted-client")
+			            .authorizedGrantTypes("password", "authorization_code", "refresh_token", "implicit")
+			            .authorities("ROLE_CLIENT", "ROLE_TRUSTED_CLIENT")
+			            .scopes("read", "write", "trust")
+			            .accessTokenValiditySeconds(60)
+				    .and()
+					.withClient("tonr")
 			 			.resourceIds(TRIONES_RESOURCE_ID)
 			 			.authorizedGrantTypes("authorization_code", "implicit")
 			 			.authorities("ROLE_CLIENT")
@@ -133,7 +156,7 @@ public class OAuth2ServerConfig {
 		                .authorizedGrantTypes("implicit")
 		                .authorities("ROLE_CLIENT")
 		                .scopes("read", "write", "trust")
-		                .autoApprove(true);
+		                .autoApprove(true);*/
 			// @formatter:on
 		}
 

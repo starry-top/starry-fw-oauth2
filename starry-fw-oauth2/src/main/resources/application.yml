@@ -1,3 +1,40 @@
+spring:
+  profiles:
+      active: dev
+
+---
+
 server:
     port: 8081
     contextPath: /
+
+spring:
+
+    profiles: prod
+
+    datasource:
+        url: jdbc:mysql://IP:3306/yourdatabase?useUnicode=true&characterEncoding=utf-8
+        driverClassName: com.mysql.jdbc.Driver
+        username: user
+        password: youpassword
+    jpa:
+        generate-ddl: true
+        hibernate.ddl-auto: update
+        show-sql: true
+        open-in-view: true
+        hibernate: 
+            naming:
+                strategy: org.hibernate.cfg.ImprovedNamingStrategy
+        properties: 
+            hibernate: 
+                dialect: org.hibernate.dialect.MySQL5Dialect
+                
+---
+
+server:
+    port: 8081
+    contextPath: /
+
+spring:
+
+    profiles: dev
