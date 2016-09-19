@@ -9,19 +9,25 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
+	@Autowired
+	private UserDetailsManager trionesUserDetailsManager;
+
     @Autowired
     public void globalUserDetails(AuthenticationManagerBuilder auth) throws Exception {
     	// TODO 自定义UserDetailsService实现类取代inMemoryAuthentication
-        auth.inMemoryAuthentication()
+    	auth.userDetailsService(trionesUserDetailsManager);
+
+        /*auth.inMemoryAuthentication()
         	.withUser("chenchao").password("1234").roles("USER")
         .and()
-        	.withUser("maying").password("1234").roles("USER");
+        	.withUser("maying").password("1234").roles("USER");*/
     }
 
     @Override
