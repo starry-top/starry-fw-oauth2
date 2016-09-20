@@ -1,11 +1,11 @@
 spring:
   profiles:
       active: dev
-
+debug: true
 ---
 
 server:
-    port: 8081
+    port: 80
     contextPath: /
 
 spring:
@@ -13,10 +13,10 @@ spring:
     profiles: prod
 
     datasource:
-        url: jdbc:mysql://IP:3306/yourdatabase?useUnicode=true&characterEncoding=utf-8
+        url: jdbc:mysql://IP:3306/prod?useUnicode=true&characterEncoding=utf-8
         driverClassName: com.mysql.jdbc.Driver
         username: user
-        password: youpassword
+        password: password
     jpa:
         generate-ddl: true
         hibernate.ddl-auto: update
@@ -38,3 +38,27 @@ server:
 spring:
 
     profiles: dev
+    
+    datasource:
+        url: jdbc:h2:mem:dev;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+        driverClassName: org.h2.Driver
+        username: sa
+        password: 
+    jpa:
+        generate-ddl: true
+        hibernate.ddl-auto: update
+        show-sql: true
+        open-in-view: true
+        hibernate: 
+            naming:
+                strategy: org.hibernate.cfg.ImprovedNamingStrategy
+        properties: 
+            hibernate: 
+                dialect: org.hibernate.dialect.H2Dialect
+    
+    h2:
+        console:
+            enabled: true
+            
+    thymeleaf:
+        cache: false

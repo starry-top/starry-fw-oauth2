@@ -34,7 +34,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     public void configure(WebSecurity web) throws Exception {
         web.ignoring().antMatchers("/bootstrap/**", "/jquery-easyui/**",
         		"/images/**", "/css/**", "/js/**", "/webjars/**",
-        		"/oauth/uncache_approvals", "/oauth/cache_approvals", "/test/**");
+        		"/oauth/uncache_approvals", "/oauth/cache_approvals", "/test/**",
+        		"/h2-console/**");
     }
 
     @Override
