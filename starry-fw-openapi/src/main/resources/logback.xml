@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/base.xml"/>
+    <logger name="com.starry.triones" level="INFO"/>
+    <logger name="org.springframework.security" level="DEBUG"/>
+    <logger name="org.apache.coyote.http11.Http11InputBuffer" level="TRACE"/>
+    <logger name="org.apache.coyote.http11.Http11OutputBuffer" level="TRACE"/>
+   	<root level="INFO" />
+</configuration>
