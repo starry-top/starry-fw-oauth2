@@ -2,14 +2,13 @@ package com.starry.triones.config;
 
 import javax.sql.DataSource;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.context.annotation.Scope;
-import org.springframework.context.annotation.ScopedProxyMode;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -23,19 +22,22 @@ import org.springframework.security.oauth2.config.annotation.web.configurers.Aut
 import org.springframework.security.oauth2.config.annotation.web.configurers.AuthorizationServerSecurityConfigurer;
 import org.springframework.security.oauth2.config.annotation.web.configurers.ResourceServerSecurityConfigurer;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.approval.ApprovalStore;
 import org.springframework.security.oauth2.provider.approval.TokenApprovalStore;
 import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
 import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
-import org.springframework.security.oauth2.provider.token.TokenStore;
-import org.springframework.security.oauth2.provider.token.store.InMemoryTokenStore;
+import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
+import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
 
 import com.starry.triones.oauth.TrionesUserApprovalHandler;
 
 
 @Configuration
 public class OAuth2ServerConfig {
+
+	private static final Logger log = LoggerFactory.getLogger(OAuth2ServerConfig.class);
 
 	private static final String TRIONES_RESOURCE_ID = "triones";
 
@@ -75,27 +77,70 @@ public class OAuth2ServerConfig {
 	@EnableAuthorizationServer
 	protected static class AuthorizationServerConfiguration extends AuthorizationServerConfigurerAdapter {
 
-		@Autowired
-		private TokenStore tokenStore;
+		@Value("${security.oauth2.privateKey}")
+		private String privateKey;
+
+		@Value("${security.oauth2.publicKey}")
+		private String publicKey;
 
 		@Autowired
 		private UserApprovalHandler userApprovalHandler;
 
 		@Autowired
-		private DataSource dataSource;
+		private ClientDetailsService clientDetailsService;
 
 		@Autowired
 		@Qualifier("authenticationManagerBean")
 		private AuthenticationManager authenticationManager;
 
-		@Value("${test.redirect:http://localhost:8080/client/}")
-		private String testRedirectUri;
+		@Bean
+		public JdbcClientDetailsService clientDetailsService(DataSource dataSource) {
+			return new JdbcClientDetailsService(dataSource);
+		}
 
 
 		@Bean
-		public JdbcClientDetailsService jdbcClientDetailsService() {
-			return new JdbcClientDetailsService(dataSource);
+		public JwtAccessTokenConverter tokenEnhancer() {
+			log.info("Initializing JWT with public key:\n" + publicKey);
+			JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
+			converter.setSigningKey(privateKey);
+			converter.setVerifierKey(publicKey);
+			return converter;
 		}
+
+		@Bean
+		public JwtTokenStore tokenStore() {
+			return new JwtTokenStore(tokenEnhancer());
+		}
+
+
+		@Bean
+		public OAuth2RequestFactory oAuth2RequestFactory() {
+			return new DefaultOAuth2RequestFactory(clientDetailsService);
+		}
+
+		@Bean
+		public ApprovalStore approvalStore() throws Exception {
+			TokenApprovalStore store = new TokenApprovalStore();
+			store.setTokenStore(tokenStore());
+			return store;
+		}
+
+		@Bean
+		public UserApprovalHandler oAuth2UserApprovalHandler() throws Exception {
+			TrionesUserApprovalHandler handler = new TrionesUserApprovalHandler();
+			handler.setApprovalStore(approvalStore());
+			handler.setRequestFactory(new DefaultOAuth2RequestFactory(clientDetailsService));
+			handler.setClientDetailsService(clientDetailsService);
+			handler.setRequestFactory(oAuth2RequestFactory());
+			handler.setUseApprovalStore(true);
+
+			return handler;
+		}
+
+		@Value("${test.redirect:http://localhost:8080/client/}")
+		private String testRedirectUri;
+
 
 		@Override
 		public void configure(ClientDetailsServiceConfigurer clients) throws Exception {
@@ -103,7 +148,7 @@ public class OAuth2ServerConfig {
 
 			// TODO 用JdbcClientDetailsService替换InMemoryClientDetailsService
 
-			clients.withClientDetails(jdbcClientDetailsService());
+			clients.withClientDetails(clientDetailsService);
 
 			// @formatter:off
 			/*clients.inMemory()
@@ -160,17 +205,17 @@ public class OAuth2ServerConfig {
 			// @formatter:on
 		}
 
-		@Bean
-		public TokenStore tokenStore() {
-			// TODO 集群环境的时候使用 RedisTokenStore
-			return new InMemoryTokenStore();
-		}
-
 		@Override
 		public void configure(AuthorizationServerEndpointsConfigurer endpoints) throws Exception {
-			endpoints.tokenStore(tokenStore)
+			endpoints
+				// Which authenticationManager should be used for the password grant
+				// If not provided, ResourceOwnerPasswordTokenGranter is not configured
 				.userApprovalHandler(userApprovalHandler)
-				.authenticationManager(authenticationManager);
+				.authenticationManager(authenticationManager)
+
+				// Use JwtTokenStore and our jwtAccessTokenConverter
+				.tokenStore(tokenStore())
+				.accessTokenConverter(tokenEnhancer());
 		}
 
 		@Override
@@ -178,34 +223,6 @@ public class OAuth2ServerConfig {
 			oauthServer.realm("triones/client");
 		}
 
-	}
-
-	protected static class Stuff {
-
-		@Autowired
-		private ClientDetailsService clientDetailsService;
-
-		@Autowired
-		private TokenStore tokenStore;
-
-		@Bean
-		public ApprovalStore approvalStore() throws Exception {
-			TokenApprovalStore store = new TokenApprovalStore();
-			store.setTokenStore(tokenStore);
-			return store;
-		}
-
-		@Bean
-		@Lazy
-		@Scope(proxyMode = ScopedProxyMode.TARGET_CLASS)
-		public TrionesUserApprovalHandler userApprovalHandler() throws Exception {
-			TrionesUserApprovalHandler handler = new TrionesUserApprovalHandler();
-			handler.setApprovalStore(approvalStore());
-			handler.setRequestFactory(new DefaultOAuth2RequestFactory(clientDetailsService));
-			handler.setClientDetailsService(clientDetailsService);
-			handler.setUseApprovalStore(true);
-			return handler;
-		}
 	}
 
 }
